@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>treequery.js</title>
+        <script src="../dist/treequery.min.js"></script>
+        <!--script src="../bower_components/jquery/dist/jquery.js"></script-->
+        
+        
+        
+        <link rel="stylesheet" href="//code.jquery.com/qunit/qunit-1.18.0.css">
+        <script src="//code.jquery.com/qunit/qunit-1.18.0.js"></script>
+        <script src="../node_modules/qunit-assert-compare/qunit-assert-compare.js"></script>
+        <script>
+           /*
+            var QUnit = {
+                test: function (name, callback) {
+                    document.addEventListener("DOMContentLoaded", function(event) { 
+                        callback({
+                            equal: function(actual, expected, algo){
+                                console.assert(actual == expected, actual, expected, algo);
+                            }
+                        });
+                    });                    
+                }
+            } 
+            */
+        </script>
+        
+        
+        
+        
+        <script src="js/test.js"></script>
+        <script src="js/html-strategy.js"></script>
+        <script src="js/js-object-trategy.js"></script>
+    </head>
+    <style>
+        #test-area * {
+            padding: 5px;
+            border: 1px solid black;
+            display: inline-block;            
+        }
+        #test-area *:before {
+            content: attr(id);
+        }
+    </style>
+    <body fullbleed>
+        <div id="qunit"></div>
+        <div id="test-area"></div>
+    </body>
+    <script>
+        
+    </script>
+</html>

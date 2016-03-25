@@ -1,0 +1,38 @@
+{
+  "name": "treequery",
+  "version": "0.8.0",
+  "homepage": "https://github.com/vapaee/treequery",
+  "description": "Reimplementation of jquery but suitable for any kind of tree data structures.",
+  "main": "dist/treequery.js",
+  "moduleType": [
+    "amd",
+    "globals"
+  ],
+  "keywords": [
+    "tree",
+    "data",
+    "query",
+    "search",
+    "find",
+    "filter",
+    "jquery",
+    "datatree",
+    "algorithm",
+    "structure"
+  ],
+  "authors": [
+    "Viterbo Rodríguez Flániguen"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "devDependencies": {
+    "qunit": "~1.18.0",
+    "jquery": "^2.2.2"
+  }
+}
