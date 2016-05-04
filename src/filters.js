@@ -24,7 +24,7 @@ TreeQuery.Filters.TageNameFilter = function (tagname) {
 TreeQuery.Filters.TageNameFilter.prototype = new TreeQuery.Filters();
 TreeQuery.Filters.TageNameFilter.prototype.constructor = TreeQuery.Filters.TageNameFilter
 TreeQuery.Filters.TageNameFilter.prototype.check = function (node, strategy) {
-    return strategy.tagName(node).toLowerCase() == this._tagname;
+    return strategy._tq_tag_name(node).toLowerCase() == this._tagname;
 }
 
 
@@ -34,7 +34,7 @@ TreeQuery.Filters.IdFilter = function (id) {
 TreeQuery.Filters.IdFilter.prototype = new TreeQuery.Filters();
 TreeQuery.Filters.IdFilter.prototype.constructor = TreeQuery.Filters.IdFilter
 TreeQuery.Filters.IdFilter.prototype.check = function (node, strategy) {
-    var id = strategy.id(node);;
+    var id = strategy._tq_id(node);;
     return typeof id == "string" ? id.toLowerCase() == this._id : false;
 }
 
@@ -45,7 +45,7 @@ TreeQuery.Filters.ClassFilter = function (classname) {
 TreeQuery.Filters.ClassFilter.prototype = new TreeQuery.Filters();
 TreeQuery.Filters.ClassFilter.prototype.constructor = TreeQuery.Filters.ClassFilter
 TreeQuery.Filters.ClassFilter.prototype.check = function (node, strategy) {
-    var list = strategy.class(node);
+    var list = strategy._tq_class(node);
     for (var i in list) {
         if (list[i].toLowerCase() == this._classname) return true;
     }

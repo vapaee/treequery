@@ -1,9 +1,9 @@
 {
   "name": "treequery",
-  "version": "0.8.0",
+  "version": "0.1.0",
   "homepage": "https://github.com/vapaee/treequery",
   "description": "Reimplementation of jquery but suitable for any kind of tree data structures.",
-  "main": "dist/treequery.js",
+  "main": "dist/treequery.min.js",
   "moduleType": [
     "amd",
     "globals"
@@ -21,7 +21,11 @@
     "structure"
   ],
   "authors": [
-    "Viterbo Rodríguez Flániguen"
+      {
+          "name": "Viterbo Rodríguez Flániguen",
+          "email": "viter.rod@gmail.com",
+          "homepage": "http://viterborodriguez.com" 
+      }
   ],
   "license": "MIT",
   "ignore": [
@@ -29,7 +33,7 @@
     "node_modules",
     "bower_components",
     "test",
-    "tests"
+    "src"
   ],
   "devDependencies": {
     "qunit": "~1.18.0",

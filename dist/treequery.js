@@ -1,5 +1,5 @@
 (function (undef) {
-;var VERSION = "0.1.0",
+;var VERSION = "0.8.0",
     TreeQuery_prototype = [];
 
 function TreeQuery(selector, context) {
@@ -28,11 +28,15 @@ function TreeQuery(selector, context) {
     }    
     
     if (typeof selector == "string") {
+        if (selector=="body") {
+            var body = this._tqGetDefaultContext();
+            return new TreeQuery(body,body);
+        }
         var result = this._tq_strategy._tq_parse(selector);
         if (result instanceof TreeQuery) {
             return result;
         } else {
-            return $(this._tq_context, this._tq_context).find(selector);
+            return new TreeQuery(this._tq_context, this._tq_context).find(selector);
         }
     }
     
@@ -70,31 +74,59 @@ TreeQuery._tq_version = VERSION;
 TreeQuery._tq         = TreeQuery_prototype;
 TreeQuery._tq_types   = {};
 
-TreeQuery.register = function (name, obj) {
-    console.log("TreeQuery.register", name, obj);
-    var base = new BaseStrategy();
-    for (var func in base) {
-        if (typeof base[func] == "function" && !obj[func]) {
-            obj[func] = base[func];
+TreeQuery._tq_register_api = function (name, api) {
+    for (var func in api) {
+        if (typeof api[func] == "function") {
+            TreeQuery._tq[func] = api[func];
+        }
+    }    
+    
+    /*
+    var extensions = TreeQuery._tq_apis[name];    
+    if (!extensions) extensions = {};
+    
+    for (var func in api) {
+        if (typeof api[func] == "function") {
+            extensions[func] = api[func];
         }
     }
-    TreeQuery._tq_types[name] = obj;
     
-    for (var name in obj) {
-        if (typeof obj[name] == "function" && !TreeQuery_prototype[name]) {
+    TreeQuery._tq_apis[name] = extensions;
+    */
+}
+
+TreeQuery._tq_register_stratgy = function (name, api) {
+    var base = new BaseStrategy();
+    for (var func in base) {
+        if (typeof base[func] == "function" && !api[func]) {
+            api[func] = base[func];
+        }
+    }
+    var strategy = TreeQuery._tq_types[name];    
+    if (!strategy) strategy = new Strategy(name);
+    
+    for (var func in api) {
+        if (typeof api[func] == "function") {
+            strategy[func] = api[func];
+        }
+    }
+    
+    TreeQuery._tq_types[name] = strategy;
+    
+    for (var name in api) {
+        if (typeof api[name] == "function" && !TreeQuery_prototype[name]) {
             
             (function (_name) {                
                 TreeQuery_prototype[_name] = function () {
-                    var args = [null];
-                    for (var i=0; i<arguments.length; i++) {
-                        args.push(arguments[i]);
-                    }
-                    args.push(0);
-                    args.push(this.length);
+                    // this is TreeQuery                    
+                    var args = Array.prototype.map.call(arguments, function (n) { return n; });
+                    args.unshift(null);            // agrego un null al comienzo
+                    args.push(0);                  // current index
+                    args.push(this.length);        // total 
                     for (var i=0; i<this.length; i++) {
-                        args[0]=this[i];
-                        args[args.length-2]=i;
-                        var result = this._tq_strategy[_name].apply(obj, args);
+                        args[0]=this[i];           // current element
+                        args[args.length-2]=i;     // current index
+                        var result = this._tq_strategy[_name].apply(this._tq_strategy, args);
                         if (result != this._tq_strategy) {
                             return result;
                         }
@@ -133,7 +165,7 @@ TreeQuery.Filters.TageNameFilter = function (tagname) {
 TreeQuery.Filters.TageNameFilter.prototype = new TreeQuery.Filters();
 TreeQuery.Filters.TageNameFilter.prototype.constructor = TreeQuery.Filters.TageNameFilter
 TreeQuery.Filters.TageNameFilter.prototype.check = function (node, strategy) {
-    return strategy.tagName(node).toLowerCase() == this._tagname;
+    return strategy._tq_tag_name(node).toLowerCase() == this._tagname;
 }
 
 
@@ -143,7 +175,7 @@ TreeQuery.Filters.IdFilter = function (id) {
 TreeQuery.Filters.IdFilter.prototype = new TreeQuery.Filters();
 TreeQuery.Filters.IdFilter.prototype.constructor = TreeQuery.Filters.IdFilter
 TreeQuery.Filters.IdFilter.prototype.check = function (node, strategy) {
-    var id = strategy.id(node);;
+    var id = strategy._tq_id(node);;
     return typeof id == "string" ? id.toLowerCase() == this._id : false;
 }
 
@@ -154,7 +186,7 @@ TreeQuery.Filters.ClassFilter = function (classname) {
 TreeQuery.Filters.ClassFilter.prototype = new TreeQuery.Filters();
 TreeQuery.Filters.ClassFilter.prototype.constructor = TreeQuery.Filters.ClassFilter
 TreeQuery.Filters.ClassFilter.prototype.check = function (node, strategy) {
-    var list = strategy.class(node);
+    var list = strategy._tq_class(node);
     for (var i in list) {
         if (list[i].toLowerCase() == this._classname) return true;
     }
@@ -185,7 +217,7 @@ TreeQuery.Engine = {
                 result.push(obj);
             }            
         }
-        return $(result, $target._tq_context);
+        return TreeQuery(result, $target._tq_context);
     },    
     find: function ($target) {
         var result = [];
@@ -193,7 +225,7 @@ TreeQuery.Engine = {
         var list = $target.map(function (a) { return a; });                
         while (list.length > 0) {
             var obj = list.splice(0,1)[0];
-            var children = $target._tq_strategy.children(obj);
+            var children = $target._tq_strategy._tq_children(obj);
             for (var index in children) {
                 list.push(children[index]); // future revision
                 if ( filter.check(children[index]) ) {
@@ -201,7 +233,7 @@ TreeQuery.Engine = {
                 }
             }
         }
-        return $(result, $target._tq_context);
+        return TreeQuery(result, $target._tq_context);
     },
     apply: function ($target, name_func, args, results) {
         // recorre toda la lista de objetos que contiene $target        
@@ -222,7 +254,7 @@ TreeQuery.Engine = {
                 var array = 
                 result = result.concat($target.find(list[_select]).valueOf());
             }
-            return $(result, $target._tq_context);
+            return TreeQuery(result, $target._tq_context);
         } else if (_selector_has_spaces) {
             list = _list_of_spaces_parts;
             
@@ -253,10 +285,10 @@ TreeQuery.Engine = {
         var list = $target.map(function (a) { return a; });                
         while (list.length > 0) {
             var obj = list.splice(0,1)[0];
-            var children = $target._tq_strategy.children(obj);
+            var children = $target._tq_strategy._tq_children(obj);
             result = result.concat(children);
         }
-        return $(result, $target._tq_context);
+        return TreeQuery(result, $target._tq_context);
     },
     cache: {}
 }
@@ -351,366 +383,565 @@ TreeQuery.Engine = {
 };// ----------------------------------------------
 
 var error_text = "ERROR: 'XXX' function must be overwritten";
-function BaseStrategy(selector, context) {
-    
-}
+function BaseStrategy(selector, context) {}
 
 BaseStrategy.prototype = {};
 BaseStrategy.prototype.constructor = BaseStrategy;
+
+function Strategy(name) { this._tg_strategy = name; }
+Strategy.prototype = new BaseStrategy();
+Strategy.prototype.constructor = Strategy;
+
+// -------------------------------
+
 BaseStrategy.prototype._tq_accepts = function (node) {
     // reorna true si el node es del tipo que implementa esta estrategia
     console.error(error_text.replace("XXX", "check"));
     return false;
 }
 
-BaseStrategy.prototype.class = function (node, new_class_value) {
+/*
+BaseStrategy.prototype.eq = function (index) {
+    return this[index];
+}
+    
+
+BaseStrategy.prototype.is = function (node, selection) {
+    console.assert(false, "TreeQuery.BaseStrategy.is NOT IMPLEMENTED YET");
+    return $();
+}
+   
+BaseStrategy.prototype.next = function () {
+    // https://api.jquery.com/next/
+    // Get the immediately following sibling of each element in the set of matched elements. If a selector is provided, it retrieves the next sibling only if it matches that selector.
+    console.assert(false, "TreeQuery.BaseStrategy.next NOT IMPLEMENTED YET");
+    return false;
+}
+    */
+BaseStrategy.prototype._tq_class = function (node, new_class_value) {
     // if new_class_value is passed then the class of the node is setted.
     // Otherwise returns the current class value of the node
-    console.error(error_text.replace("XXX", "class"));
+    console.error(error_text.replace("XXX", "_tq_class"));
 }
 
-BaseStrategy.prototype.addClass = function (node) {
-    console.error(error_text.replace("XXX", "addClass"));
+BaseStrategy.prototype._tq_add_class = function (node) {
+    console.error(error_text.replace("XXX", "_tq_add_class"));
 }
 
-BaseStrategy.prototype.removeClass = function (node) {
-    console.error(error_text.replace("XXX", "removeClass"));
+BaseStrategy.prototype._tq_remove_class = function (node) {
+    console.error(error_text.replace("XXX", "_tq_remove_class"));
 }
 
-BaseStrategy.prototype.hasClass = function (node) {
-    console.error(error_text.replace("XXX", "hasClass"));
+BaseStrategy.prototype._tq_has_class = function (node) {
+    console.error(error_text.replace("XXX", "_tq_has_class"));
 }
 
-BaseStrategy.prototype.attributes = function (node, new_attrs_value) {
-    // if new_attrs_value is passed then the attribute list of the node is replaced.
-    // Otherwise returns the current node's attribute list
-    console.error(error_text.replace("XXX", "atributtes"));
+BaseStrategy.prototype._tq_map_attr = function (node, new_attrs_value) {
+    console.error(error_text.replace("XXX", "_tq_map_attr"));
 }
 
-BaseStrategy.prototype.attr = function (node, key, value) {
-    // if new_attrs_value is passed then the attribute list of the node is replaced.
-    // Otherwise returns the current node's attribute list
-    console.error(error_text.replace("XXX", "atributtes"));
+BaseStrategy.prototype._tq_get_attr = function (node, key) {
+    console.error(error_text.replace("XXX", "_tq_get_attr"));
 }
 
-BaseStrategy.prototype.removeAttr = function (node, key) {
-    console.error(error_text.replace("XXX", "removeAttr"));
+BaseStrategy.prototype._tq_set_attr = function (node, key, value) {
+    console.error(error_text.replace("XXX", "_tq_set_attr"));
 }
 
-BaseStrategy.prototype.children = function (node, new_children) {
-    // if new_children is passed then the all node's chilren are replaced.
-    // Otherwise returns the current node's chilren list
-    console.error(error_text.replace("XXX", "children"));
+BaseStrategy.prototype._tq_remove_attr = function (node, key) {
+    console.error(error_text.replace("XXX", "_tq_remove_attr"));
 }
 
-BaseStrategy.prototype.addChild = function (node) {
-    console.error(error_text.replace("XXX", "addChild"));
+BaseStrategy.prototype._tq_children = function (node) {
+    console.error(error_text.replace("XXX", "_tq_children"));
+}
+
+BaseStrategy.prototype._tq_remove = function (node) {
+    console.error(error_text.replace("XXX", "_tq_remove"));
+}
+
+BaseStrategy.prototype._tq_add_child = function (node) {
+    console.error(error_text.replace("XXX", "_tq_add_child"));
 }
 
 
-BaseStrategy.prototype.removeChild = function (node) {
-    console.error(error_text.replace("XXX", "removeChild"));
+BaseStrategy.prototype._tq_remove_child = function (node) {
+    console.error(error_text.replace("XXX", "_tq_remove_child"));
 }
 
-BaseStrategy.prototype.parent = function (node, current_parent) {
+BaseStrategy.prototype._tq_clone = function (node) {
+    console.error(error_text.replace("XXX", "_tq_clone"));
+}
+
+BaseStrategy.prototype._tq_parent = function (node, current_parent) {
     // if current_parent is passed then the parent is seted to this obj
     // Otherwise returns the current node's parent (if any) 
-    console.error(error_text.replace("XXX", "parent"));
+    console.error(error_text.replace("XXX", "_tq_parent"));
 }
 
-BaseStrategy.prototype.tagName = function (node) {
+BaseStrategy.prototype._tq_tag_name = function (node) {
     // returns the tag name of the node
-    console.error(error_text.replace("XXX", "tagName"));
+    console.error(error_text.replace("XXX", "_tq_tag_name"));
 }
 
-BaseStrategy.prototype.id = function (node, new_id) {
+BaseStrategy.prototype._tq_id = function (node, new_id) {
     // if new_id is passed then the node's id is seted.
     // Otherwise returns the current node's id
-    console.error(error_text.replace("XXX", "id"));
+    console.error(error_text.replace("XXX", "_tq_id"));
 };
 
 // ----------------------------------------------
-;
-(function (installer) {
-    if ( typeof define === "function" && define.amd ) {
-        define(["treequery"], installer );
-    } else if (typeof TreeQuery != "undefined") {
-        installer(TreeQuery);
-    } else {
-        console.error("ERROR: can't register type. Enable to locate TreeQuery instance");
-    }
-})(function ($) {
-    $.register("html-element", {
-        _tq_accepts: function (node) {
-            // reorna true si el node es del tipo que implementa esta estrategia
-            return node instanceof HTMLElement;
-        },
-        _tq_parse: function (str) {
-            try {
-                var div = document.createElement('div');
-                div.innerHTML = str;
-                var children = Array.prototype.map.call(div.childNodes, function (n) { return n; });                
-                if (children.length == 1 && children[0] instanceof Text) {
-                    return null;
-                }
-                return $(children);
-            } catch(e) {
+;TreeQuery._tq_register_stratgy("html-element", {
+    _tq_accepts: function (node) {
+        // reorna true si el node es del tipo que implementa esta estrategia
+        return node instanceof HTMLElement;
+    },
+    _tq_parse: function (str) {
+        try {
+            var div = document.createElement('div');
+            div.innerHTML = str;
+            var children = Array.prototype.map.call(div.childNodes, function (n) { return n; });                
+            if (children.length == 1 && children[0] instanceof Text) {
                 return null;
             }
-        },
-        class: function (node, new_class_value) {
-            // if new_class_value is passed then the class of the node is setted.
-            // Otherwise returns the current class value of the node
-            console.assert(this._tq_accepts(node), node);
-            if (new_class_value) {
-                node.className = new_class_value;
-                return this;
-            };
-            return node.className.split(" ");
-        },
-        addClass: function (node, classname) {
-            console.assert(this._tq_accepts(node), node);            
-            node.className += " " + classname;
+            return TreeQuery(children);
+        } catch(e) {
+            return null;
+        }
+    },
+    _tq_class: function (node, new_class_value) {
+        // if new_class_value is passed then the class of the node is setted.
+        // Otherwise returns the current class value of the node
+        console.assert(this._tq_accepts(node), node);
+        if (new_class_value) {
+            node.className = new_class_value;
             return this;
-        },
-        removeClass: function (node, classname) {
-            console.assert(this._tq_accepts(node), node);            
-            node.className = node.className.replace(new RegExp("(?:^|\\s)" + classname +  "(?!\\S)", "g"), '' );
+        };
+        return node.className.split(" ");
+    },
+    _tq_add_class: function (node, classname) {
+        console.assert(this._tq_accepts(node), node);            
+        node.className += " " + classname;
+        return this;
+    },
+    _tq_remove_class: function (node, classname) {
+        console.assert(this._tq_accepts(node), node);            
+        node.className = node.className.replace(new RegExp("(?:^|\\s)" + classname +  "(?!\\S)", "g"), '' );
+        return this;
+    },
+    _tq_has_class: function (node, classname) {
+        console.assert(this._tq_accepts(node), node);            
+        var reg = new RegExp("(?:^|\\s)" + classname +  "(?!\\S)");
+        return !!node.className.match(reg);
+    },
+    _tq_get_css: function (node, key) {
+        return node.style[key]
+    },
+    _tq_set_css: function (node, key, value) {
+        return node.style[key] = value;        
+    },
+    _tq_get_attr: function (node, key) {
+        console.assert(this._tq_accepts(node), node);        
+        console.assert(typeof key == "string", arguments);
+        return node.getAttribute(key);
+    },
+    _tq_set_attr: function (node, key, value) {
+        console.assert(this._tq_accepts(node), node);        
+        console.assert(typeof key == "string", arguments);
+        return node.setAttribute(key, value);
+    },
+    _tq_map_attr: function (node) {
+        console.assert(this._tq_accepts(node), node);            
+        var result = {};
+        Object.defineProperty(result, 'length', {enumerable: false, value: node.attributes.length});            
+        for (var i=0; i<node.attributes.length; i++) {
+            result[node.attributes[i].nodeName] = node.attributes[i].nodeValue;
+        }
+        return result;
+    },
+    _tq_set_map_attr: function (node, new_attrs_value) {
+        console.assert(this._tq_accepts(node), node);            
+        for (var i=0; i<node.attributes.length; i++) {
+            node.removeAttribute(node.attributes[i].nodeValue);
+        }
+        for (var prop in new_attrs_value) {                    
+            node.setAttribute(prop, new_attrs_value[prop]);
+        }
+        return this;
+    },
+    _tq_remove_attr: function (node, key) {
+        console.assert(this._tq_accepts(node), node);
+        node.removeAttribute(key);
+        return this;
+    },
+    _tq_children: function (node) {
+        console.assert(this._tq_accepts(node), node);
+        var children = [];
+        for (var i in node.childNodes) {
+            if (this._tq_accepts(node.childNodes[i])) {
+                children.push(node.childNodes[i]);
+            }
+        }
+        return children;                    
+    },
+    _tq_remove: function (node) {
+        console.assert(this._tq_accepts(node), node);
+        if (node.parentNode) {
+            node.parentNode.removeChild(node);
+        }
+        return this;
+    },        
+    // ---------------------------------------------------------
+    _tq_add_child: function (node, child) {
+        console.assert(this._tq_accepts(node), node);
+        console.assert(this._tq_accepts(child), child);
+        if (this._tq_accepts(child)) {                        
+            node.appendChild(child);
+        }
+        return this;
+    },
+    _tq_remove_child: function (node, child) {
+        console.assert(this._tq_accepts(node), node);
+        console.assert(this._tq_accepts(child), child);
+        if (this._tq_accepts(child)) {                        
+            node.removeChild(child);
+        }
+        return this;
+    },
+    _tq_parent: function (node, current_parent) {
+        // if current_parent is passed then the parent is seted to this obj
+        // Otherwise returns the current node's parent (if any) 
+        console.assert(this._tq_accepts(node), node);            
+        if (current_parent && this._tq_accepts(current_parent)) {                        
+            if (node.parentNode != current_parent) {
+                node.parentNode.removeChild(node);
+                current_parent.appendChild(node);
+                console.assert(node.parentNode == current_parent, node, node.parentNode,current_parent);
+            }
             return this;
-        },
-        hasClass: function (node, classname) {
-            console.assert(this._tq_accepts(node), node);            
-            var reg = new RegExp("(?:^|\\s)" + classname +  "(?!\\S)");
-            return !!node.className.match(reg);
-        },
-        attr: function (node, key, value) {
-            console.assert(this._tq_accepts(node), node);        
-            console.assert(arguments.length != 3, arguments);
-            
-            if ((arguments.length == 2 || arguments.length == 4) && typeof key == "string") {
-                // no value passed. Is a get invocation.
-                return this.attributes(node)[key];
-            }
-            
-            if ((arguments.length == 2 || arguments.length == 4) && typeof key == "object") {
-                // map object passed. Is a multiple set invocation.
-                var list = key;
-                for (var key_i in list) {
-                    var value_i = list[key_i];
-                    node.setAttribute(key_i, value_i);
-                }                
-            }
-            
-            if ((arguments.length == 3 || arguments.length == 5) && typeof value == "function") {
-                var index = -1;                
-                if (node.parentNode) {
-                    var nodeList = Array.prototype.slice.call( node.parentNode.children );
-                    index = nodeList.indexOf( node );
+        }
+        return node.parentNode;
+    },
+    _tq_clone: function (node) {
+        console.assert(this._tq_accepts(node), node);
+        return node.cloneNode(true);
+    },
+    // ----------------------------------------------------------
+    _tq_tag_name: function (node) {
+        // returns the tag name of the node
+        console.assert(this._tq_accepts(node), node);
+        return node.tagName.toLowerCase();
+    },
+    _tq_id: function (node, new_id) {
+        // if new_id is passed then the node's id is seted.
+        // Otherwise returns the current node's id
+        return new_id ? this._tq_set_attr(node, "id", new_id) : this._tq_get_attr(node, "id");
+    },
+    _tq_offset: function (node, new_value) {
+        if (new_value) {
+            node.style.width= new_value;
+            return this;
+        }
+        return node.offsetWidth();
+    },
+    _tq_width: function (node, new_value) {
+        if (new_value) {
+            node.style.width= new_value;
+            return this;
+        }
+        return node.offsetWidth();
+    },
+    _tq_height: function (node, new_value) {
+        if (new_value) {
+            node.style.height = new_value;
+            return this;
+        }
+        return node.offsetHeight();
+    },
+});
+;TreeQuery._tq_register_stratgy("js-object", {
+    accepts: function (node) {
+        // reorna true si el node es del tipo que implementa esta estrategia
+        return false;
+    },
+    _tq_class: function (node, new_class_value) {
+        // if new_class_value is passed then the class of the node is setted.
+        // Otherwise returns the current class value of the node
+    },
+    _tq_add_class: function (node, classname) {},
+    _tq_remove_class: function (node, classname) {},
+    _tq_has_class: function (node, classname) {
+        console.assert(this._tq_accepts(node), node);
+    },
+
+    _tq_set_attr: function (node) {},
+    _tq_map_attr: function (new_attrs_value) {
+        // if new_attrs_value is passed then the attribute list of the node is replaced.
+        // Otherwise returns the current node's attribute list
+    },
+    _tq_remove_attr: function (node) {},
+
+    _tq_children: function (node) {
+    },
+    _tq_remove: function (node) {},
+    _tq_add_child: function (node) {},
+    _tq_remove_child: function (node) {},
+    _tq_parent: function (node, current_parent) {
+        // if current_parent is passed then the parent is seted to this obj
+        // Otherwise returns the current node's parent (if any) 
+    },
+    _tq_tag_name: function (node) {
+        // returns the tag name of the node
+    },
+    _tq_id: function (node, new_id) {
+        // if new_id is passed then the node's id is seted.
+        // Otherwise returns the current node's id
+    },
+});;TreeQuery._tq_register_api("jquery-dom-manage", {
+    each: function (callback) {
+        var do_break = null;
+        for (var i=0; i<this.length; i++) {
+            do_break = callback.call(this[i], this[i], i, this);
+            if (do_break) break;
+        }
+        return this;
+    },
+    offset: function () {
+        return {
+            top: this[0].offsetTop,
+            left: this[0].offsetLeft
+        }
+    },
+    eq: function (index) {
+        return this[index];
+    },
+    is: function (selection) {
+        console.assert(false, "TreeQuery.BaseStrategy.is NOT IMPLEMENTED YET");
+        return $();
+    },
+    next: function () {
+        // https://api.jquery.com/next/
+        // Get the immediately following sibling of each element in the set of matched elements. If a selector is provided, it retrieves the next sibling only if it matches that selector.
+        console.assert(false, "TreeQuery.BaseStrategy.next NOT IMPLEMENTED YET");
+        return false;
+    },
+    class: function (new_class_value) {
+        return this._tq_strategy._tq_class(this[0], new_class_value);
+    },
+    addClass: function (classname) {        
+        return this.each(function (element,index,self) {
+            self._tq_strategy._tq_add_class(element, classname);
+        });
+    },
+    removeClass: function (classname) {
+        return this.each(function (element,index,self) {
+            self._tq_strategy._tq_remove_class(element, classname);
+        });
+    },
+    hasClass: function (classname) {
+        return this._tq_strategy._tq_has_class(this[0], classname);
+    },
+    css: function (key, val) {
+        if (arguments.length == 1) {
+            if (typeof key == "object") {
+                for (var i in key) {
+                    this.css(i, key[i]);
                 }
-                var value_func = value.apply(node, [index, key]);
-                node.setAttribute(key, value_func);                
+                return this;            
             }
-            
-            if (arguments.length == 3 || arguments.length == 5) {
-                node.setAttribute(key, value);
+
+            if (typeof key == "string") {
+                if (this.length == 0) return null;
+                return self._tq_strategy._tq_set_css(this[0], key, val);          
             }
-            
-            return this;            
-        },
-        attributes: function (node, new_attrs_value) {
-            // if new_attrs_value is passed then the attribute list of the node is replaced.
-            // Otherwise returns the current node's attribute list
-            console.assert(this._tq_accepts(node), node);            
-            if (new_attrs_value) {
-                for (var prop in new_attrs_value) {                    
-                    node.setAttribute(prop, new_attrs_value[prop]);
-                };
-                return this;
-            };            
-            var result = {};
-            Object.defineProperty(result, 'length', {enumerable: false, value: node.attributes.length});            
-            for (var i=0; i<node.attributes.length; i++) {
-                result[node.attributes[i].nodeName] = node.attributes[i].nodeValue;
-            }
-            return result;
-        },
-        removeAttr: function (node, key) {
-            console.assert(this._tq_accepts(node), node);
-            node.removeAttribute(key);
-            return this;
-        },
-        children: function (node, new_children) {
-            // if new_children is passed then the all node's chilren are replaced.
-            // Otherwise returns the current node's chilren list                        
-            console.assert(this._tq_accepts(node), node);
-            
-            if (new_children) {
-                for (var i in new_children) {
-                    var child = new_children[i];
-                    console.assert(this._tq_accepts(child), child);
-                    if (this._tq_accepts(child)) {                        
-                        node.appendChild(child);
+        }
+        
+        if (arguments.length == 2 && typeof key == "string") {
+            return this.each(function (element,index,self) {
+                self._tq_strategy._tq_set_css(element, key, val);
+            });
+        }
+        
+        return this;
+    },
+    attr: function (key, value) {
+        
+        if (arguments.length == 1 && typeof key == "string") {
+            return this._tq_strategy._tq_get_attr(this[0], key);
+        }
+        
+        if (arguments.length == 2 && typeof key == "string" && (typeof value == "string" || typeof value == "number")) {
+            return this.each(function (element,index,self) {
+                self._tq_strategy._tq_set_attr(element, key, value);
+            });            
+        }
+        
+        if (arguments.length == 2 && typeof key == "string" && typeof value == "function") {
+            return this.each(function (element,index,self) {
+                var value_func = value.apply(element, [index, key]);
+                self._tq_strategy._tq_set_attr(element, key, value_func);
+            });            
+        }        
+        
+        if (typeof key == "object") {
+            var list = key;
+            for (var key_i in list) {
+                var value_i = list[key_i];                
+                this.each(function (element,index,self) {
+                    self._tq_strategy._tq_set_attr(element, key_i, value_i);
+                });
+            }            
+        }
+        return this;               
+    },
+    attributes: function (new_attrs_value) {
+        if (arguments.length == 0) {
+            return this._tq_strategy._tq_map_attr(this[0]);       
+        }        
+        return this.each(function (element,index,self) {
+            self._tq_strategy._tq_set_map_attr(element, new_attrs_value);
+        });
+    },
+    removeAttr: function (key) {
+        return this.each(function (element,index,self) {
+            self._tq_strategy._tq_remove_attr(element, key);
+        });
+    },
+    children: function (selector) {
+        console.assert(!selector || typeof selector == "string", arguments);
+        var $selector = null;
+        
+        if (selector) {
+            $selector = TreeQuery(selector);
+        }
+        var result = [];
+        this.each(function (element, index, self) {
+            var children = self._tq_strategy._tq_children(element);
+            if ($selector) {
+                // Esto se podría optimizar haciendo que el motor tenga una forma de chequear que un objeto concreto cumple con un query
+                for (var i=0; i<$selector.length; i++) {
+                    for (var j=0; j<children.length; j++) {
+                        if ($selector[i] == children[j]) {
+                            result.push(children[j]);
+                        }
                     }
                 }
+            } else {
+                result = result.concat(children);
             }
-            
-            var children = [];
-            for (var i in node.childNodes) {
-                if (this._tq_accepts(node.childNodes[i])) {
-                    children.push(node.childNodes[i]);
+        });
+        return TreeQuery(result);
+    },
+    remove: function () {
+        return this.each(function (element,index,self) {
+            self._tq_strategy._tq_remove(element);
+        });
+    },
+    parent: function (selector) {
+        console.assert(!selector || typeof selector == "string", arguments);
+        var $selector = null;
+        
+        if (selector) {
+            $selector = TreeQuery(selector);
+        }
+        var result = [];
+        this.each(function (element, index, self) {
+            var parent = self._tq_strategy._tq_parent(element);
+            if ($selector) {
+                // Esto se podría optimizar haciendo que el motor tenga una forma de chequear que un objeto concreto cumple con un query
+                for (var i=0; i<$selector.length; i++) {
+                    if ($selector[i] == parent) {
+                        result.push(parent);
+                    }
                 }
+            } else {
+                result.push(parent);
             }
-            return children;                    
-        },
-        remove: function (node) {
-            console.assert(this._tq_accepts(node), node);
-            if (node.parentNode) {
-                node.parentNode.removeChild(node);
+        });
+        return TreeQuery(result);
+    },
+    clone: function () {
+        var result = [];
+        this.each(function (element, index, self) {
+            var minime = self._tq_strategy._tq_clone(element);
+            result.pus(minime);
+        });
+        return TreeQuery(result);        
+    },
+    append: function (target) {
+        return this.each(function (element,index,self) {
+            if (self._tq_strategy._tq_accepts(target)) {
+                self._tq_strategy._tq_add_child(node, target);
             }
-            return this;
-        },        
-        // ---------------------------------------------------------
-        addChild: function (node, child) {
-            console.assert(this._tq_accepts(node), node);
-            console.assert(this._tq_accepts(child), child);
-            if (this._tq_accepts(child)) {                        
-                node.appendChild(child);
-            }
-            return this;
-        },
-        removeChild: function (node) {
-            console.assert(this._tq_accepts(node), node);
-            console.assert(this._tq_accepts(child), child);
-            if (this._tq_accepts(child)) {                        
-                node.removeChild(child);
-            }
-            return this;
-        },
-        parent: function (node, current_parent) {
-            // if current_parent is passed then the parent is seted to this obj
-            // Otherwise returns the current node's parent (if any) 
-            console.assert(this._tq_accepts(node), node);            
-            if (current_parent && this._tq_accepts(current_parent)) {                        
-                if (node.parentNode != current_parent) {
-                    node.parentNode.removeChild(node);
-                    current_parent.appendChild();
-                    console.assert(node.parentNode == current_parent, node, node.parentNode,current_parent);
-                }
-                return this;
-            }
-            return node.parentNode;
-        },
-        clone: function (node) {
-            console.assert(this._tq_accepts(node), node);
-            return $(node.cloneNode(true));
-        },
-        append: function (node, target, index, total) {
-            console.assert(this._tq_accepts(node), node);
-            if (this._tq_accepts(target)) {
-                this.addChild(node, target);
-            }
-            
             if (target instanceof TreeQuery) {
                 for (var i=0; i<target.length; i++) {                    
                     var elem = target[i];
-                    console.assert(this._tq_accepts(elem), elem);
-                    if (!isNaN(index) && !isNaN(total) && index!=total-1) {
-                        elem = this.clone(elem)[0];
+                    console.assert(self._tq_strategy._tq_accepts(elem), elem);
+                    if (!isNaN(index) && index!=self.length-1) {
+                        elem = self._tq_strategy._tq_clone(elem);
                     }
-                    this.append(node,elem);
+                    self._tq_strategy._tq_add_child(element, elem);
                 }
             }
-            
-            return this;
-        },
-        appendTo: function (node, content) {
-            console.assert(this._tq_accepts(node), node);
-            if (this._tq_accepts(content) && this._tq_accepts(node)) {
-                content.appendChild(node);
+            if (typeof target == "string") {
+                self.append(TreeQuery(target));
             }
             
+        });        
+    },
+    appendTo: function (content) {
+        if (typeof content == "string") {
+            content = new TreeQuery(content, this._tqGetDefaultContext());
+        }
+        
+        return this.each(function (element,index,self) {
+            if (self._tq_strategy._tq_accepts(content)) {
+                self._tq_strategy._tq_add_child(content, element);
+            }
+
             if (content instanceof TreeQuery) {
                 for (var i=0; i<content.length; i++) {                    
                     var elem = content[i];
-                    console.assert(this._tq_accepts(elem), elem);
-                    this.append(elem, i==content.length-1 ? node : this.clone(node)[0]);
+                    console.assert(self._tq_strategy._tq_accepts(elem), elem);
+                    if (i==content.length-1) {
+                        self._tq_strategy._tq_add_child(elem, element );
+                    } else {
+                        self._tq_strategy._tq_add_child(elem, self._tq_strategy._tq_clone(element));
+                    }
                 }                
             }
-            
-            if (typeof content == "string") {
-                this.appendTo(node, $(content));
-            }
-            
-            return this;
-        },
-        // ----------------------------------------------------------
+        });          
         
-        tagName: function (node) {
-            // returns the tag name of the node
-            console.assert(this._tq_accepts(node), node);
-            return node.tagName.toLowerCase();
-        },
-        id: function (node, new_id) {
-            // if new_id is passed then the node's id is seted.
-            // Otherwise returns the current node's id
-            return new_id ? this.attr(node, "id", new_id) : this.attr(node, "id");
-        },
-    });
-});
-;
-(function (installer) {
+    },
+    // ----------------------------------------------------------
+    height: function (new_value) {        
+        if (new_value) {
+            if (typeof new_value == "number") {
+                new_value = new_value + "px";
+            } 
+            return this.each(function (element,index,self) {
+                self._tq_strategy._tq_height(element, new_value);
+            });            
+        } else {
+           return this._tq_strategy._tq_height(element);
+        }
+    },
+    width: function (new_value) {
+        if (new_value) {
+            if (typeof new_value == "number") {
+                new_value = new_value + "px";
+            } 
+            return this.each(function (element,index,self) {
+                self._tq_strategy._tq_width(element, new_value);
+            });            
+        } else {
+           return this._tq_strategy._tq_width(element);
+        }
+    },
+    
+});;
     if ( typeof define === "function" && define.amd ) {
-        define(["treequery"], installer );
-    } else if (typeof TreeQuery != "undefined") {
-        installer(TreeQuery);
-    } else {
-        console.error("ERROR: can't register type. Enable to locate TreeQuery instance");
-    }
-})(function ($) {
-    $.register("js-object", {
-        accepts: function (node) {
-            // reorna true si el node es del tipo que implementa esta estrategia
-            return false;
-        },
-        class: function (node, new_class_value) {
-            // if new_class_value is passed then the class of the node is setted.
-            // Otherwise returns the current class value of the node
-        },
-        addClass: function (node, classname) {},
-        removeClass: function (node, classname) {},
-        hasClass: function (node, classname) {
-            console.assert(this._tq_accepts(node), node);
-        },
-
-        attr: function (node) {},
-        atributtes: function (new_attrs_value) {
-            // if new_attrs_value is passed then the attribute list of the node is replaced.
-            // Otherwise returns the current node's attribute list
-        },
-        removeAttr: function (node) {},
-
-        children: function (node, new_children) {
-            // if new_children is passed then the all node's chilren are replaced.
-            // Otherwise returns the current node's chilren list
-        },
-        addChild: function (node) {},
-        removeAttr: function (node) {},
-        parent: function (node, current_parent) {
-            // if current_parent is passed then the parent is seted to this obj
-            // Otherwise returns the current node's parent (if any) 
-        },
-        tagName: function (node) {
-            // returns the tag name of the node
-        },
-        id: function (node, new_id) {
-            // if new_id is passed then the node's id is seted.
-            // Otherwise returns the current node's id
-        },
-    });
-});
-;
-    if ( typeof define === "function" && define.amd ) {
-        define([], function () {return TreeQuery; } );
+        define(function () {return TreeQuery; } );
     } else {
         window.$ = TreeQuery;
         window.TreeQuery = TreeQuery;

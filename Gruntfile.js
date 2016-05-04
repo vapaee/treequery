@@ -23,6 +23,7 @@ module.exports = function(grunt) {
                     'src/strategies/base-strategy.js',
                     'src/strategies/html-element.js',
                     'src/strategies/js-object.js',
+                    'src/apis/jquery-api.js',
                     'src/wrapper_end.js'
                 ],
                 dest: 'dist/treequery.js',
@@ -37,6 +38,9 @@ module.exports = function(grunt) {
             },
             lib: {
                 
+            },
+            jwk: {
+                out : '../jwebkit.js/lib/treequery.min.js'
             }
         },
         watch: {

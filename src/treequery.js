@@ -27,11 +27,15 @@ function TreeQuery(selector, context) {
     }    
     
     if (typeof selector == "string") {
+        if (selector=="body") {
+            var body = this._tqGetDefaultContext();
+            return new TreeQuery(body,body);
+        }
         var result = this._tq_strategy._tq_parse(selector);
         if (result instanceof TreeQuery) {
             return result;
         } else {
-            return $(this._tq_context, this._tq_context).find(selector);
+            return new TreeQuery(this._tq_context, this._tq_context).find(selector);
         }
     }
     
@@ -69,31 +73,59 @@ TreeQuery._tq_version = VERSION;
 TreeQuery._tq         = TreeQuery_prototype;
 TreeQuery._tq_types   = {};
 
-TreeQuery.register = function (name, obj) {
-    console.log("TreeQuery.register", name, obj);
-    var base = new BaseStrategy();
-    for (var func in base) {
-        if (typeof base[func] == "function" && !obj[func]) {
-            obj[func] = base[func];
+TreeQuery._tq_register_api = function (name, api) {
+    for (var func in api) {
+        if (typeof api[func] == "function") {
+            TreeQuery._tq[func] = api[func];
+        }
+    }    
+    
+    /*
+    var extensions = TreeQuery._tq_apis[name];    
+    if (!extensions) extensions = {};
+    
+    for (var func in api) {
+        if (typeof api[func] == "function") {
+            extensions[func] = api[func];
         }
     }
-    TreeQuery._tq_types[name] = obj;
     
-    for (var name in obj) {
-        if (typeof obj[name] == "function" && !TreeQuery_prototype[name]) {
+    TreeQuery._tq_apis[name] = extensions;
+    */
+}
+
+TreeQuery._tq_register_stratgy = function (name, api) {
+    var base = new BaseStrategy();
+    for (var func in base) {
+        if (typeof base[func] == "function" && !api[func]) {
+            api[func] = base[func];
+        }
+    }
+    var strategy = TreeQuery._tq_types[name];    
+    if (!strategy) strategy = new Strategy(name);
+    
+    for (var func in api) {
+        if (typeof api[func] == "function") {
+            strategy[func] = api[func];
+        }
+    }
+    
+    TreeQuery._tq_types[name] = strategy;
+    
+    for (var name in api) {
+        if (typeof api[name] == "function" && !TreeQuery_prototype[name]) {
             
             (function (_name) {                
                 TreeQuery_prototype[_name] = function () {
-                    var args = [null];
-                    for (var i=0; i<arguments.length; i++) {
-                        args.push(arguments[i]);
-                    }
-                    args.push(0);
-                    args.push(this.length);
+                    // this is TreeQuery                    
+                    var args = Array.prototype.map.call(arguments, function (n) { return n; });
+                    args.unshift(null);            // agrego un null al comienzo
+                    args.push(0);                  // current index
+                    args.push(this.length);        // total 
                     for (var i=0; i<this.length; i++) {
-                        args[0]=this[i];
-                        args[args.length-2]=i;
-                        var result = this._tq_strategy[_name].apply(obj, args);
+                        args[0]=this[i];           // current element
+                        args[args.length-2]=i;     // current index
+                        var result = this._tq_strategy[_name].apply(this._tq_strategy, args);
                         if (result != this._tq_strategy) {
                             return result;
                         }

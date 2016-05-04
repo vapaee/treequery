@@ -19,8 +19,7 @@ QUnit.test("test basic", function( assert ) {
             </div>\
         </div>\
     ';
-        
-
+            
     // -- actions
     query = "div.coso.lala";
     $target = $(query, area);

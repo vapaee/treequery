@@ -3,8 +3,7 @@
     <head>
         <meta charset="utf-8">
         <title>treequery.js</title>
-        <script src="../dist/treequery.min.js"></script>
-        <!--script src="../bower_components/jquery/dist/jquery.js"></script-->
+        <script src="../dist/treequery.js"></script>
         
         
         
@@ -12,19 +11,20 @@
         <script src="//code.jquery.com/qunit/qunit-1.18.0.js"></script>
         <script src="../node_modules/qunit-assert-compare/qunit-assert-compare.js"></script>
         <script>
-           /*
-            var QUnit = {
-                test: function (name, callback) {
-                    document.addEventListener("DOMContentLoaded", function(event) { 
-                        callback({
-                            equal: function(actual, expected, algo){
-                                console.assert(actual == expected, actual, expected, algo);
-                            }
-                        });
-                    });                    
-                }
-            } 
-            */
+           
+            if (typeof QUnit == "undefined") {
+                var QUnit = {
+                    test: function (name, callback) {
+                        document.addEventListener("DOMContentLoaded", function(event) { 
+                            callback({
+                                equal: function(actual, expected, algo){
+                                    console.assert(actual == expected, actual, expected, algo);
+                                }
+                            });
+                        });                    
+                    }
+                } 
+            }
         </script>
         
         

@@ -14,7 +14,7 @@ TreeQuery.Engine = {
                 result.push(obj);
             }            
         }
-        return $(result, $target._tq_context);
+        return TreeQuery(result, $target._tq_context);
     },    
     find: function ($target) {
         var result = [];
@@ -22,7 +22,7 @@ TreeQuery.Engine = {
         var list = $target.map(function (a) { return a; });                
         while (list.length > 0) {
             var obj = list.splice(0,1)[0];
-            var children = $target._tq_strategy.children(obj);
+            var children = $target._tq_strategy._tq_children(obj);
             for (var index in children) {
                 list.push(children[index]); // future revision
                 if ( filter.check(children[index]) ) {
@@ -30,7 +30,7 @@ TreeQuery.Engine = {
                 }
             }
         }
-        return $(result, $target._tq_context);
+        return TreeQuery(result, $target._tq_context);
     },
     apply: function ($target, name_func, args, results) {
         // recorre toda la lista de objetos que contiene $target        
@@ -51,7 +51,7 @@ TreeQuery.Engine = {
                 var array = 
                 result = result.concat($target.find(list[_select]).valueOf());
             }
-            return $(result, $target._tq_context);
+            return TreeQuery(result, $target._tq_context);
         } else if (_selector_has_spaces) {
             list = _list_of_spaces_parts;
             
@@ -82,10 +82,10 @@ TreeQuery.Engine = {
         var list = $target.map(function (a) { return a; });                
         while (list.length > 0) {
             var obj = list.splice(0,1)[0];
-            var children = $target._tq_strategy.children(obj);
+            var children = $target._tq_strategy._tq_children(obj);
             result = result.concat(children);
         }
-        return $(result, $target._tq_context);
+        return TreeQuery(result, $target._tq_context);
     },
     cache: {}
 }
