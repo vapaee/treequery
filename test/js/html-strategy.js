@@ -139,5 +139,58 @@ QUnit.test("test html strategy", function( assert ) {
     assert.equal($("#test-area .hola").length, 1, "#test-area .hola");
     // -----------
     
+    // -- actions
+    query = ".hola";
+    var $target  = $(query);
+    console.log([query, $target]);
+    $target.css({
+        "background-color": "magenta",
+        "position": "absolute"
+    });
+    // -- assertions    
+    assert.equal($target.css("background-color"), "magenta", "background-color: magenta"); 
+    // -----------
+    
+    // -- actions
+    query = ".hola";
+    var $target  = $(query);
+    console.log([query, $target]);
+    $target.offset({
+        "top": "10px",
+        "left": "10px"
+    });
+    // -- assertions    
+    assert.equal($target.offset().top, 10, "background-color: magenta"); 
+    // -----------
+    
+    // -- actions
+    query = "#palabra p";
+    var $target  = $(query);
+    console.log([query, $target]);
+    $target.removeClass("color_rojo");
+    // -- assertions    
+    assert.equal($target.hasClass("color_rojo"), false, "color_rojo");    
+    // -----------
+    
+    // -- actions
+    query = "#palabra p";
+    var $target  = $(query);
+    console.log([query, $target]);
+    $target.css("background-color", "yellow");
+    // -- assertions    
+    assert.equal($target.css("background-color"), "yellow", "background-color: green");    
+    // -----------
+    
+    // -- actions
+    query = "#palabra";
+    var $target  = $(query);
+    console.log([query, $target]);
+    $target.css({"background-color": "green"});
+    // -- assertions    
+    assert.equal($target.css("background-color"), "green", "background-color: green");    
+    // -----------
+
+
+    
     
 });

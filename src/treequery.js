@@ -41,6 +41,15 @@ function TreeQuery(selector, context) {
     
 }
 
+// http://stackoverflow.com/a/2970667
+TreeQuery.utils = {
+    toCamelCase: function (str) {
+        return str.replace(/(?:^\w|[A-Z]|\b\w)/g, function(letter, index) {
+            return index == 0 ? letter.toLowerCase() : letter.toUpperCase();
+        }).replace(/[\s-]+/g, '')
+    }
+}
+
 TreeQuery.prototype = TreeQuery_prototype;
 TreeQuery_prototype.constructor = TreeQuery;
 TreeQuery_prototype._tqGetStrategy = function () {

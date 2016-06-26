@@ -42,10 +42,10 @@ TreeQuery._tq_register_stratgy("html-element", {
         return !!node.className.match(reg);
     },
     _tq_get_css: function (node, key) {
-        return node.style[key]
+        return node.style[TreeQuery.utils.toCamelCase(key)]
     },
     _tq_set_css: function (node, key, value) {
-        return node.style[key] = value;        
+        return node.style[TreeQuery.utils.toCamelCase(key)] = value;        
     },
     _tq_get_attr: function (node, key) {
         console.assert(this._tq_accepts(node), node);        
@@ -146,7 +146,7 @@ TreeQuery._tq_register_stratgy("html-element", {
     },
     _tq_offset: function (node, new_value) {
         if (new_value) {
-            node.style.width= new_value;
+            console.error("ERROR: _tq_offset(arguments[2]) not implemented");            
             return this;
         }
         return {top: node.offsetTop, left: node.offsetLeft};

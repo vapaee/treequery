@@ -7,8 +7,13 @@ TreeQuery._tq_register_api("jquery-dom-manage", {
         }
         return this;
     },
-    offset: function () {
-        return {
+    offset: function (value) {
+        if (value) {
+            this.css({
+                top:  (typeof value.top == "number"  ? value.top  + "px" : value.top),
+                left: (typeof value.left == "number" ? value.left + "px" : value.left)
+            });
+        } else return {
             top: this[0].offsetTop,
             left: this[0].offsetLeft
         }
@@ -42,7 +47,7 @@ TreeQuery._tq_register_api("jquery-dom-manage", {
     hasClass: function (classname) {
         return this._tq_strategy._tq_has_class(this[0], classname);
     },
-    css: function (key, val) {
+    css: function (key, val) {        
         if (arguments.length == 1) {
             if (typeof key == "object") {
                 for (var i in key) {
@@ -53,7 +58,7 @@ TreeQuery._tq_register_api("jquery-dom-manage", {
 
             if (typeof key == "string") {
                 if (this.length == 0) return null;
-                return self._tq_strategy._tq_set_css(this[0], key, val);          
+                return this._tq_strategy._tq_get_css(this[0], key);
             }
         }
         
