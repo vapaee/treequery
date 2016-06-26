@@ -224,7 +224,7 @@ TreeQuery._tq_register_api("jquery-dom-manage", {
                 self._tq_strategy._tq_height(element, new_value);
             });            
         } else {
-           return this._tq_strategy._tq_height(element);
+           return this._tq_strategy._tq_height(this[0]);
         }
     },
     width: function (new_value) {
@@ -236,7 +236,7 @@ TreeQuery._tq_register_api("jquery-dom-manage", {
                 self._tq_strategy._tq_width(element, new_value);
             });            
         } else {
-           return this._tq_strategy._tq_width(element);
+           return this._tq_strategy._tq_width(this[0]);
         }
     },
     
