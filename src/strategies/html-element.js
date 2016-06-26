@@ -149,20 +149,20 @@ TreeQuery._tq_register_stratgy("html-element", {
             node.style.width= new_value;
             return this;
         }
-        return node.offsetWidth();
+        return {top: node.offsetTop, left: node.offsetLeft};
     },
     _tq_width: function (node, new_value) {
         if (new_value) {
             node.style.width= new_value;
             return this;
         }
-        return node.offsetWidth();
+        return node.offsetWidth;
     },
     _tq_height: function (node, new_value) {
         if (new_value) {
             node.style.height = new_value;
             return this;
         }
-        return node.offsetHeight();
+        return node.offsetHeight;
     },
 });
