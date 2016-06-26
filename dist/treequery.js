@@ -923,7 +923,7 @@ BaseStrategy.prototype._tq_id = function (node, new_id) {
                 self._tq_strategy._tq_height(element, new_value);
             });            
         } else {
-           return this._tq_strategy._tq_height(element);
+           return this._tq_strategy._tq_height(this[0]);
         }
     },
     width: function (new_value) {
@@ -935,7 +935,7 @@ BaseStrategy.prototype._tq_id = function (node, new_id) {
                 self._tq_strategy._tq_width(element, new_value);
             });            
         } else {
-           return this._tq_strategy._tq_width(element);
+           return this._tq_strategy._tq_width(this[0]);
         }
     },
     
