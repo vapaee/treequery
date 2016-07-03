@@ -6,7 +6,7 @@ QUnit.test("test html strategy", function( assert ) {
     var area = document.getElementById("test-area");
         area.innerHTML = '\
             <div class="hola">(hola)</div>\
-            <div id="padre" coso="mi coso">\
+            <div id="padre" coso="mi coso" selec="value">\
                 <div id="pepe" class="coso lololo">\
                     <p>texto_A</p>\
                     <p>texto_B</p>\
@@ -188,6 +188,38 @@ QUnit.test("test html strategy", function( assert ) {
     $target.css({"background-color": "green"});
     // -- assertions    
     assert.equal($target.css("background-color"), "green", "background-color: green");    
+    // -----------
+
+    // -- actions
+    query = "div[selec][id=padre]";
+    var $target  = $(query);
+    console.log([query, $target]);
+    // -- assertions    
+    assert.equal($target[0], $("#padre")[0], query);    
+    // -----------
+
+    // -- actions
+    query = "div[selec][id=padre][selec][id=padre]";
+    var $target  = $(query);
+    console.log([query, $target]);
+    // -- assertions    
+    assert.equal($target[0], $("#padre")[0], query);    
+    // -----------
+
+    // -- actions
+    query = "div[selec][id=padre][id=padre]";
+    var $target  = $(query);
+    console.log([query, $target]);
+    // -- assertions    
+    assert.equal($target[0], $("#padre")[0], query);    
+    // -----------
+
+    // -- actions
+    query = "div[id=padre]";
+    var $target  = $(query);
+    console.log([query, $target]);
+    // -- assertions    
+    assert.equal($target[0], $("#padre")[0], query);    
     // -----------
 
 

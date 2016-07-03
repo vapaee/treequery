@@ -27,6 +27,42 @@ TreeQuery.Filters.TageNameFilter.prototype.check = function (node, strategy) {
     return strategy._tq_tag_name(node).toLowerCase() == this._tagname;
 }
 
+TreeQuery.Filters.AttrValueFilter = function (str) {
+    console.assert(typeof str == "string", str);
+    if (str.indexOf("!=") != -1) {
+        this._attr_name = str.split("!=")[0];
+        this._attr_value = str.split("!=")[1];
+        this._attr_op = "!=";
+    } else if (str.indexOf("=") != -1) {
+        this._attr_name = str.split("=")[0];
+        this._attr_value = str.split("=")[1];
+        this._attr_op = "=";
+    } else {
+        this._attr_name = str;
+        this._attr_value = null;
+        this._attr_op = null;
+    }    
+}
+TreeQuery.Filters.AttrValueFilter.prototype = new TreeQuery.Filters();
+TreeQuery.Filters.AttrValueFilter.prototype.constructor = TreeQuery.Filters.AttrValueFilter
+TreeQuery.Filters.AttrValueFilter.prototype.check = function (node, strategy) {    
+    var map = strategy._tq_map_attr(node);    
+    switch (this._attr_op) {
+        case "!=":
+            if (typeof map[this._attr_name] == "undefined") return false;
+            if (map[this._attr_name] != this._attr_value) return true;
+            break;
+        case "=": 
+            if (typeof map[this._attr_name] == "undefined") return false;
+            if (map[this._attr_name] == this._attr_value) return true;
+            break;
+        case null:
+            if (typeof map[this._attr_name] != "undefined") return true;
+            break;
+    }
+    return false;
+}
+
 
 TreeQuery.Filters.IdFilter = function (id) {
     this._id = id.toLowerCase();    
