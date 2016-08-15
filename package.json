@@ -1,6 +1,6 @@
 {
   "name": "treequery",
-  "version": "0.1.0",
+  "version": "0.1.6",
   "description": "Reimplementation of jquery but suitable for any kind of tree data structures.",
   "main": "dist/treequery.min.js",
   "scripts": {
